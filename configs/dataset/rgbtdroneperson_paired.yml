@@ -1,0 +1,46 @@
+task: detection
+
+evaluator:
+  type: CocoEvaluator
+  iou_types: ['bbox']
+
+num_classes: 3
+remap_mscoco_category: False
+
+train_dataloader:
+  type: DataLoader
+  dataset:
+    type: PairedCocoDetection
+    rgb_img_folder: /hy-tmp/RGBTDronePerson/images/train/RGB
+    ir_img_folder: /hy-tmp/RGBTDronePerson/images/train/IR
+    ann_file: /hy-tmp/RGBTDronePerson/annotations/instances_train.json
+    return_masks: False
+    strict_pairing: True
+    transforms:
+      type: Compose
+      ops: ~
+
+  shuffle: True
+  num_workers: 4
+  drop_last: True
+  collate_fn:
+    type: BatchImageCollateFunction
+
+val_dataloader:
+  type: DataLoader
+  dataset:
+    type: PairedCocoDetection
+    rgb_img_folder: /hy-tmp/RGBTDronePerson/images/val/RGB
+    ir_img_folder: /hy-tmp/RGBTDronePerson/images/val/IR
+    ann_file: /hy-tmp/RGBTDronePerson/annotations/instances_val.json
+    return_masks: False
+    strict_pairing: True
+    transforms:
+      type: Compose
+      ops: ~
+
+  shuffle: False
+  num_workers: 4
+  drop_last: False
+  collate_fn:
+    type: BatchImageCollateFunction
