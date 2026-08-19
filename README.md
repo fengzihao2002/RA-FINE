@@ -1,113 +1,75 @@
-# RA-FINE
+RA-FINE
+Reliability-Aware Cross-Modal Alignment and Fine-Grained Distribution Refinement for RGB-T UAV Object Detection
 
-**RA-FINE: Reliability-Aware Cross-Modal Alignment and Fine-Grained Distribution Refinement for RGB-T UAV Object Detection**
+Official PyTorch implementation of RA-FINE.
 
-Official implementation of **RA-FINE**, a dual-stream RGB-T UAV object detector built on D-FINE.
+Model Weights • Releases • D-FINE
 
-**Authors:** Zihao Feng, Xinying Chen  
-**Affiliation:** School of Railway Intelligent Engineering, Dalian Jiaotong University, Dalian 116052, China  
-**Code contact:** fengzihao2002@163.com  
-**Correspondence:** chenxy1979@163.com
+Introduction
+RGB-T UAV detection benefits from the complementary appearance and thermal information provided by visible and infrared modalities. In practice, however, performance is still limited by residual cross-modal misalignment, spatially varying modality reliability, and uncertain localization of tiny targets.
 
----
+RA-FINE is built on D-FINE and introduces three complementary components:
 
-## Overview
+FS-CDAE — Frequency-Spatial Cross-Modal Deformable Alignment Enhancement
+Exploits high-frequency structural cues to estimate bounded local displacements and selectively align RGB features to the infrared reference. In the final configuration, FS-CDAE is applied at P3 and P4.
 
-RGB-T UAV object detection benefits from the complementary appearance and thermal information provided by visible and infrared modalities, but its performance can be degraded by residual cross-modal misalignment, spatially varying modality reliability, and uncertain localization of tiny objects.
+IGMRF — Improved Guided Multi-Resolution Fusion
+Estimates spatially resolved modality reliability and injects reliability-aware priors into RGB-IR feature competition and fusion.
 
-RA-FINE extends D-FINE with three components:
+MA-FDR — Modality-Adaptive Fine-Grained Distribution Refinement
+Refines D-FINE boundary distributions using modality-specific localization evidence, local reliability, boundary uncertainty, and cross-modal disagreement.
 
-- **FS-CDAE — Frequency-Spatial Cross-Modal Deformable Alignment Enhancement**  
-  Uses high-frequency structural cues to estimate bounded local offsets and selectively aligns RGB features to the infrared reference. In the final P34 configuration, FS-CDAE is applied to **P3 and P4**, while P5 bypasses geometric warping.
+Together, these modules target the three main difficulties of RGB-T UAV detection: misalignment, unreliable modality contributions, and uncertain tiny-target boundaries.
 
-- **IGMRF — Improved Guided Multi-Resolution Fusion**  
-  Estimates spatially varying modality reliability and introduces reliability-aware priors into RGB-IR feature competition and fusion.
-
-- **MA-FDR — Modality-Adaptive Fine-Grained Distribution Refinement**  
-  Refines D-FINE boundary distributions in the decoder using modality-specific localization evidence, reliability information, boundary uncertainty, and cross-modal disagreement.
-
-The current public code package contains the **final P34 implementation and RGBTDronePerson training/evaluation pipeline**.
-
----
-
-## Repository Structure
-
-```text
+News
+2026-08-19 — Initial public release of RA-FINE.
+2026-08-19 — Released v1.0.0 with trained RA-FINE and D-FINE-M checkpoints.
+Repository Structure
 RA-FINE/
-├── configs/
-│   ├── dataset/
-│   │   └── rgbtdroneperson_paired.yml
-│   └── dfine/
-│       └── custom/
-│           └── full/
-│               └── dfine_hgnetv2_m_obj2rgbtdroneperson_full_p34.yml
-├── src/
+├── configs/                         # Dataset, model, and training configurations
+├── reference/                       # Reference/upstream materials retained by the project
+├── src/                             # Core model and training implementation
 │   ├── data/
-│   │   └── dataset/
-│   │       └── paired_coco_dataset.py
 │   └── zoo/
-│       └── dfine/
-│           ├── multimodal_full.py
-│           ├── dfine.py
-│           ├── dfine_decoder.py
-│           └── ...
-├── tools/
-│   ├── full_model_smoke_test.py
-│   └── test_fs_cdae_direction.py
-├── train.py
+├── tools/                           # Utility, deployment, testing, and visualization tools
+├── weights/                         # Weight documentation
+├── Dockerfile
+├── LICENSE
+├── README.md
 ├── benchmark_fps_dual_stream.py
 ├── eval_rgbtdroneperson_official_dual_stream.py
-├── rgbtdroneperson_cocoeval.py
 ├── requirements.txt
-└── LICENSE
-```
+├── rgbtdroneperson_cocoeval.py
+└── train.py
+The main final P34 configuration for RGBTDronePerson is:
 
-The main RA-FINE configuration is:
-
-```text
 configs/dfine/custom/full/dfine_hgnetv2_m_obj2rgbtdroneperson_full_p34.yml
-```
+Installation
+Recommended environment
+The experiments reported for RA-FINE were conducted with:
 
----
-
-## Installation
-
-### Recommended environment
-
-The experiments reported in the manuscript were conducted with a Python/PyTorch/CUDA environment consistent with:
-
-```text
 Python 3.11
 PyTorch 2.2.1
 CUDA 12.1.x
-```
+Create a Python environment and install the dependencies:
 
-Create an environment and install the repository dependencies:
-
-```bash
 conda create -n rafine python=3.11 -y
 conda activate rafine
 
 pip install -r requirements.txt
 pip install pycocotools
-```
+Make sure that your PyTorch installation is compatible with the CUDA version available on your machine.
 
-> GPU/CUDA installations may require a PyTorch build matched to the CUDA version available on your system.
+Datasets
+RA-FINE is evaluated on RGBTDronePerson and VTUAV-det.
 
----
+RGBTDronePerson
+Please obtain RGBTDronePerson from its original public source:
 
-## Dataset Preparation
+Project page: https://nnnnerd.github.io/RGBTDronePerson/
+Repository: https://github.com/NNNNerd/RGBTDronePerson
+The paired data loader expects RGB and infrared images together with COCO-style annotations. A typical layout is:
 
-### RGBTDronePerson
-
-Download **RGBTDronePerson** from its official project page:
-
-- Project: https://nnnnerd.github.io/RGBTDronePerson/
-- Code/data repository: https://github.com/NNNNerd/RGBTDronePerson
-
-This implementation expects paired RGB and infrared images and COCO-style annotations. A typical directory layout is:
-
-```text
 RGBTDronePerson/
 ├── images/
 │   ├── train/
@@ -120,25 +82,14 @@ RGBTDronePerson/
     ├── instances_train.json
     ├── instances_val.json
     └── val_thermal.json
-```
+The dual-stream input is organized as:
 
-The paired loader uses a 6-channel input ordered as:
-
-```text
 [RGB (3 channels), IR (3 channels)]
-```
+Before training or evaluation, update the local dataset paths in:
 
-### Update dataset paths
-
-Before training or evaluation, edit:
-
-```text
 configs/dataset/rgbtdroneperson_paired.yml
-```
+For example:
 
-and replace the local paths with paths on your machine:
-
-```yaml
 train_dataloader:
   dataset:
     rgb_img_folder: /path/to/RGBTDronePerson/images/train/RGB
@@ -150,147 +101,112 @@ val_dataloader:
     rgb_img_folder: /path/to/RGBTDronePerson/images/val/RGB
     ir_img_folder: /path/to/RGBTDronePerson/images/val/IR
     ann_file: /path/to/RGBTDronePerson/annotations/instances_val.json
-```
+VTUAV-det
+VTUAV-det is used as a second RGB-T pedestrian-detection benchmark and as the target dataset in the direct cross-dataset evaluation.
 
-Also change the default `output_dir` in the final configuration or override it from the command line.
+Please obtain VTUAV-det from its original source. The raw dataset is not redistributed in this repository.
 
-> The current initial release does not include the original dataset images. Users should obtain RGBTDronePerson from its official source and prepare the COCO-style annotation files used by this implementation.
+The current public repository primarily provides the final RA-FINE implementation and the RGBTDronePerson training/evaluation pipeline. The released VTUAV-det checkpoint is provided through GitHub Releases.
 
----
+Model Zoo
+Trained checkpoints are distributed through:
 
-## Pretrained Weights
+RA-FINE v1.0.0:
+https://github.com/fengzihao2002/RA-FINE/releases/tag/v1.0.0
 
-RA-FINE is initialized from the **D-FINE-M Objects365 pretrained checkpoint**.
+Checkpoint	Training Dataset	Description
+RA-FINE_RGBTDronePerson.pth	RGBTDronePerson	Final RA-FINE model for the main RGBTDronePerson experiments; also used for direct RGBTDronePerson → VTUAV-det evaluation
+RA-FINE_VTUAV-det.pth	VTUAV-det	Final RA-FINE model trained and evaluated on VTUAV-det
+D-FINE-M_RGBTDronePerson.pth	RGBTDronePerson	Dual-stream D-FINE-M baseline trained on RGBTDronePerson
+After downloading, the checkpoints may be organized as:
 
-Please obtain the corresponding checkpoint from the official D-FINE repository/model zoo:
+RA-FINE/
+└── weights/
+    ├── RA-FINE_RGBTDronePerson.pth
+    ├── RA-FINE_VTUAV-det.pth
+    └── D-FINE-M_RGBTDronePerson.pth
+The original D-FINE-M Objects365 pretrained checkpoint is not redistributed here. Please obtain it from the official D-FINE repository.
 
-- D-FINE: https://github.com/Peterande/D-FINE
+Training
+RA-FINE is initialized from the D-FINE-M Objects365 pretrained checkpoint.
 
-Place the downloaded checkpoint anywhere convenient, for example:
+Official D-FINE repository:
 
-```text
-weights/dfine_m_obj365.pth
-```
-
-Model weights trained specifically for RA-FINE are not included in this initial source-code package.
-
----
-
-## Training
+https://github.com/Peterande/D-FINE
 
 The final RGBTDronePerson configuration uses:
 
-- D-FINE-M / HGNetv2-B2 backbone
-- RGB-T dual-stream input
-- FS-CDAE on P3 and P4
-- IGMRF on multi-scale dual-modal features
-- MA-FDR in the decoder
-- input resolution: `512 x 640`
-- training epochs: `56`
-- AMP enabled
-- random seed: `0`
-
+D-FINE-M / HGNetv2-B2 backbone
+dual-stream RGB-T input
+FS-CDAE on P3 and P4
+IGMRF for reliability-guided multi-resolution fusion
+MA-FDR in the decoder
+input resolution: 512 × 640
+training epochs: 56
+AMP enabled
+random seed: 0
 Example single-GPU training command:
 
-```bash
 CUDA_VISIBLE_DEVICES=0 python -u train.py \
   -c configs/dfine/custom/full/dfine_hgnetv2_m_obj2rgbtdroneperson_full_p34.yml \
   -t /path/to/dfine_m_obj365.pth \
   --use-amp \
   --seed 0 \
   --output-dir ./output/rafine_rgbtdroneperson
-```
+Evaluation
+COCO-style evaluation
+Evaluate the released RGBTDronePerson checkpoint with:
 
-Training checkpoints and logs will be written to the specified output directory.
-
----
-
-## Evaluation
-
-### COCO-style evaluation
-
-After editing the dataset paths in the YAML configuration, evaluate a trained checkpoint with:
-
-```bash
 CUDA_VISIBLE_DEVICES=0 python -u train.py \
   -c configs/dfine/custom/full/dfine_hgnetv2_m_obj2rgbtdroneperson_full_p34.yml \
-  -r /path/to/RA-FINE.pth \
+  -r weights/RA-FINE_RGBTDronePerson.pth \
   --test-only
-```
-
-### Official RGBTDronePerson protocol
-
-The repository also includes an evaluation script for the official tiny-person protocol:
-
-```bash
+Official RGBTDronePerson evaluation
 python eval_rgbtdroneperson_official_dual_stream.py \
   --config configs/dfine/custom/full/dfine_hgnetv2_m_obj2rgbtdroneperson_full_p34.yml \
-  --checkpoint /path/to/RA-FINE.pth \
+  --checkpoint weights/RA-FINE_RGBTDronePerson.pth \
   --official-ann /path/to/RGBTDronePerson/annotations/val_thermal.json \
   --official-cocoeval ./rgbtdroneperson_cocoeval.py \
   --output-dir ./output/official_eval
-```
+The evaluator exports:
 
-The script exports:
-
-```text
 official_predictions.json
 official_metrics.json
-```
+Cross-Dataset Evaluation
+For direct RGBTDronePerson-to-VTUAV-det evaluation, use:
 
-and prints the official RGBTDronePerson evaluation metrics.
+RA-FINE_RGBTDronePerson.pth
+as the source-domain checkpoint and evaluate it directly on VTUAV-det.
 
----
+No target-domain training or fine-tuning is performed before cross-dataset evaluation.
 
-## Inference Speed
+This experiment is designed to evaluate whether the improvement of RA-FINE is retained under dataset shift rather than after target-domain adaptation.
 
-`benchmark_fps_dual_stream.py` measures dual-stream inference speed using:
+Inference Speed
+The repository provides:
 
-- batch size: 1
-- input shape: `6 x 512 x 640`
-- 100 warm-up iterations
-- 1000 timed iterations
-- CUDA synchronization
-- image loading excluded
+benchmark_fps_dual_stream.py
+The reported timing protocol uses:
 
+batch size: 1
+input shape: 6 × 512 × 640
+100 warm-up iterations
+1000 timed iterations
+CUDA synchronization
+image loading excluded
 Example:
 
-```bash
 python benchmark_fps_dual_stream.py \
   --config configs/dfine/custom/full/dfine_hgnetv2_m_obj2rgbtdroneperson_full_p34.yml \
-  --checkpoint /path/to/RA-FINE.pth \
+  --checkpoint weights/RA-FINE_RGBTDronePerson.pth \
   --device cuda:0 \
   --height 512 \
   --width 640
-```
+FPS should only be compared under the same hardware, input resolution, precision mode, batch size, and timing protocol.
 
-The script reports both pure model-forward FPS and detector FPS (model forward + post-processing).
+Main Configuration
+Key settings of the final P34 model include:
 
----
-
-## Smoke Test
-
-A synthetic forward/backward test is provided for the final P34 model:
-
-```bash
-PYTHONPATH=. python tools/full_model_smoke_test.py
-```
-
-The test verifies that the final model can be constructed, produces finite losses, and propagates gradients through FS-CDAE, IGMRF, and MA-FDR related paths.
-
-A separate synthetic test is also provided for the FS-CDAE offset convention:
-
-```bash
-PYTHONPATH=. python tools/test_fs_cdae_direction.py
-```
-
----
-
-## Main Configuration
-
-The final P34 model is configured with the following principal settings:
-
-```yaml
 input_channels: 6
 eval_spatial_size: [512, 640]
 epochs: 56
@@ -310,74 +226,64 @@ DFINETransformer:
   ma_residual_clip: 3.0
   ma_max_gamma: 0.50
   ma_reliability_prior_scale: 0.50
-```
-
 For the complete configuration, see:
 
-```text
 configs/dfine/custom/full/dfine_hgnetv2_m_obj2rgbtdroneperson_full_p34.yml
-```
+Results
+RGBTDronePerson
+Method	mAP50_all (%)	mAP25_all (%)	COCO AP (%)	AP75 (%)	APs (%)
+D-FINE-M	50.36	51.97	18.20	7.44	18.21
+RA-FINE	53.06	54.60	20.27	9.48	20.46
+Improvement	+2.70	+2.63	+2.07	+2.04	+2.25
+VTUAV-det
+The final RA-FINE model reaches a COCO AP of:
 
----
+37.74%
+under in-domain training and evaluation on VTUAV-det.
 
-## Experimental Results
+Direct Cross-Dataset Transfer
+When the RGBTDronePerson-trained models are evaluated directly on VTUAV-det without target-domain training or fine-tuning, RA-FINE retains a:
 
-Selected results reported for RA-FINE on RGBTDronePerson are:
++0.92 AP
+advantage over the dual-stream D-FINE-M baseline.
 
-| Method | mAP50_all (%) | mAP25_all (%) | COCO AP (%) | AP75 (%) | APs (%) |
-|---|---:|---:|---:|---:|---:|
-| RA-FINE | **53.06** | **54.60** | **20.27** | **9.48** | **20.46** |
+Computational Cost
+Method	Params	GFLOPs	FPS
+D-FINE-M	31.41 M	69.72	32.8
+RA-FINE	41.65 M	85.09	22.9
+Citation
+The formal bibliographic information for the RA-FINE paper will be added after publication.
 
-Computational statistics reported for the final RA-FINE configuration:
+If this repository is useful for your research, please also cite:
 
-| Params | GFLOPs | FPS |
-|---:|---:|---:|
-| 41.65 M | 85.09 | 22.9 |
+the original D-FINE work;
+the RGBTDronePerson benchmark;
+the VTUAV / VTUAV-det benchmark as appropriate.
+Acknowledgements
+RA-FINE is developed on top of D-FINE:
 
-> FPS should be compared only under the same hardware, input resolution, precision, batch size, and timing protocol.
+https://github.com/Peterande/D-FINE
 
----
+We thank the D-FINE authors for making their implementation and pretrained models publicly available.
 
-## Citation
+We also thank the authors of RGBTDronePerson and VTUAV for releasing the RGB-T UAV data and evaluation resources used in this study.
 
-The bibliographic entry for the RA-FINE paper will be updated when the paper is publicly available.
+License
+This repository retains the upstream Apache License 2.0 license and applicable notices from D-FINE.
 
-If this repository is useful for your research, please also cite the original **D-FINE** work and the **RGBTDronePerson** benchmark.
+Please review:
 
----
+LICENSE
+before reuse or redistribution, and comply with the licenses and attribution requirements of all upstream components and datasets.
 
-## Acknowledgements
-
-This project is developed on top of **D-FINE**:
-
-- https://github.com/Peterande/D-FINE
-
-We thank the D-FINE authors for releasing their implementation and pretrained models.
-
-We also thank the authors of **RGBTDronePerson** for making the RGB-T UAV benchmark and its evaluation resources publicly available:
-
-- https://github.com/NNNNerd/RGBTDronePerson
-- https://nnnnerd.github.io/RGBTDronePerson/
-
----
-
-## License
-
-This repository is based on D-FINE and retains the upstream **Apache License 2.0** license file and applicable notices.
-
-Please review `LICENSE` and the license/attribution requirements of all upstream components and datasets before redistribution.
-
----
-
-## Contact
-
+Contact
 For questions regarding the code or reproduction:
 
-**Zihao Feng**  
-School of Railway Intelligent Engineering, Dalian Jiaotong University  
-Email: `fengzihao2002@163.com`
+Zihao Feng
+School of Railway Intelligent Engineering, Dalian Jiaotong University
+Email: fengzihao2002@163.com
 
 For correspondence regarding the paper:
 
-**Xinying Chen**  
-Email: `chenxy1979@163.com`
+Xinying Chen
+Email: chenxy1979@163.com
